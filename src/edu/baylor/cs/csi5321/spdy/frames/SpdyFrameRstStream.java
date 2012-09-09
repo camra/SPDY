@@ -9,8 +9,7 @@ import java.io.IOException;
  * @author Lukas Camra
  */
 public class SpdyFrameRstStream extends SpdyFrameStream {
-
-    private static final short TYPE = 3;
+    
     private static final int LENGTH = 8;
     private int statusCode;
 
@@ -26,10 +25,14 @@ public class SpdyFrameRstStream extends SpdyFrameStream {
         super(streamId, controlBit, flags, LENGTH);
         this.statusCode = statusCode;
     }
+    
+    public SpdyFrameRstStream(boolean controlBit, byte flags, int length) throws SpdyException  {
+        super(controlBit, flags, length);
+    }
 
     @Override
     public short getType() {
-        return TYPE;
+        return SpdyControlFrameType.RST_STREAM.getType();
     }
 
     @Override

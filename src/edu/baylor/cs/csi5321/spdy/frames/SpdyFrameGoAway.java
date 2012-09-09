@@ -6,18 +6,18 @@ package edu.baylor.cs.csi5321.spdy.frames;
  */
 public class SpdyFrameGoAway extends SpdyFrameRstStream {
 
-    /**
-     *
-     */
-    public static final short TYPE = 7;
 
     public SpdyFrameGoAway(int statusCode, int streamId, boolean controlBit, byte flags) throws SpdyException {
         super(statusCode, streamId, controlBit, flags);
     }
+    
+    public SpdyFrameGoAway(boolean controlBit, byte flags, int length) throws SpdyException  {
+        super(controlBit, flags, length);
+    }
  
     @Override
     public short getType() {
-        return TYPE;
+        return SpdyControlFrameType.GOAWAY.getType();
     }
 
     public long getLastGoodStreamId() {

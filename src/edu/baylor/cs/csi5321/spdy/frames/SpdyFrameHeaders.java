@@ -9,17 +9,20 @@ import java.io.IOException;
  */
 public class SpdyFrameHeaders extends SpdyFrameSynStream {
 
-    private static final short TYPE = 8;
     private SpdyNameValueBlock headers;
 
-    public SpdyFrameHeaders(SpdyNameValueBlock headers, int associatedToStreamId, short priority, short slot, SpdyNameValueBlock nameValueBlock, int streamId, short version, boolean controlBit, byte flags, int length) throws SpdyException {
+    public SpdyFrameHeaders(SpdyNameValueBlock headers, int associatedToStreamId, byte priority, byte slot, SpdyNameValueBlock nameValueBlock, int streamId, short version, boolean controlBit, byte flags, int length) throws SpdyException {
         super(associatedToStreamId, priority, slot, nameValueBlock, streamId, version, controlBit, flags, length);
         this.headers = headers;
+    }
+    
+    public SpdyFrameHeaders(boolean controlBit, byte flags, int length) throws SpdyException  {
+        super(controlBit, flags, length);
     }
 
     @Override
     public short getType() {
-        return TYPE;
+        return SpdyControlFrameType.HEADERS.getType();
     }
 
     public SpdyNameValueBlock getHeaders() {

@@ -9,7 +9,6 @@ import java.io.IOException;
  */
 public class SpdyFrameSynReply extends SpdyFrameStream {
 
-    public static final short TYPE = 2;
     private SpdyNameValueBlock nameValueBlock;
 
     public SpdyNameValueBlock getNameValueBlock() {
@@ -24,10 +23,14 @@ public class SpdyFrameSynReply extends SpdyFrameStream {
         super(streamId, controlBit, flags, length);
         this.nameValueBlock = nameValueBlock;
     }
+    
+    public SpdyFrameSynReply(boolean controlBit, byte flags, int length) throws SpdyException  {
+        super(controlBit, flags, length);
+    }
 
     @Override
     public short getType() {
-        return TYPE;
+        return SpdyControlFrameType.SYN_REPLY.getType();
     }
 
     @Override

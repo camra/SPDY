@@ -1,6 +1,7 @@
 package edu.baylor.cs.csi5321.spdy.frames;
 
 import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
 import java.io.IOException;
 
 /**
@@ -24,6 +25,10 @@ public abstract class SpdyFrameStream extends SpdyControlFrame {
         this.streamId = streamId;
     }
 
+    public SpdyFrameStream(boolean controlBit, byte flags, int length) throws SpdyException {
+        super(controlBit, flags, length);
+    }
+
     @Override
     public byte[] encode() throws SpdyException {
         byte[] header = super.encode();
@@ -35,5 +40,16 @@ public abstract class SpdyFrameStream extends SpdyControlFrame {
             throw new SpdyException(ex);
         }
         return bout.toByteArray();
+    }
+
+    @Override
+    public SpdyFrame decode(DataInputStream is) throws SpdyException {
+        try {
+            int stream = is.readInt();
+            setStreamId(stream & SpdyUtil.MASK_STREAM_ID_HEADER);
+            return this;
+        } catch (Exception ex) {
+            throw new SpdyException(ex);
+        }
     }
 }
