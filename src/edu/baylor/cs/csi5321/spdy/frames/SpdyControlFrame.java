@@ -28,7 +28,7 @@ public abstract class SpdyControlFrame extends SpdyFrame {
         if(!controlBit) {
             throw new SpdyException("Control bit for control frames must be 1");
         }
-        this.controlBit = controlBit;
+        setControlBit(controlBit);
     }
     
     @Override

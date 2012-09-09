@@ -2,7 +2,7 @@ package edu.baylor.cs.csi5321.spdy.frames;
 
 /**
  *
- * @author ICPCDev
+ * @author Lukas Camra
  */
 public class SpdyUtil {
 
@@ -36,6 +36,13 @@ public class SpdyUtil {
      */
     public static long convertToUnsignedInt(int input) {
         return input & 0xFFFFFFFFL;
+    }
+
+    public static byte[] concatArrays(byte[] arr1, byte[] arr2) {
+        byte[] result = new byte[arr1.length + arr2.length];
+        System.arraycopy(arr1, 0, result, 0, arr1.length);
+        System.arraycopy(arr2, 0, result, arr1.length, arr2.length);
+        return result;
     }
 
     /**

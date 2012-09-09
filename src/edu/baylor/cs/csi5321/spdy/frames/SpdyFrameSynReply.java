@@ -1,6 +1,7 @@
 package edu.baylor.cs.csi5321.spdy.frames;
 
 import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
 import java.io.IOException;
 
 /**
@@ -23,8 +24,8 @@ public class SpdyFrameSynReply extends SpdyFrameStream {
         super(streamId, controlBit, flags, length);
         this.nameValueBlock = nameValueBlock;
     }
-    
-    public SpdyFrameSynReply(boolean controlBit, byte flags, int length) throws SpdyException  {
+
+    public SpdyFrameSynReply(boolean controlBit, byte flags, int length) throws SpdyException {
         super(controlBit, flags, length);
     }
 
@@ -35,14 +36,35 @@ public class SpdyFrameSynReply extends SpdyFrameStream {
 
     @Override
     public byte[] encode() throws SpdyException {
-        byte[] header = super.encode();
+        
         try {
             ByteArrayOutputStream bout = new ByteArrayOutputStream();
-            bout.write(header);
             bout.write(nameValueBlock.encode());
-            return bout.toByteArray();
+            byte[] body = bout.toByteArray();
+            setLength(body.length); 
+            byte[] header = super.encode();
+            return SpdyUtil.concatArrays(header, body);
+            
         } catch (IOException ex) {
             throw new SpdyException(ex);
         }
+    }
+
+    @Override
+    public SpdyFrame decode(DataInputStream is) throws SpdyException {
+        try {
+            SpdyFrameSynReply f = (SpdyFrameSynReply) super.decode(is);
+            byte[] pairs = new byte[f.getLength() - HEADER_LENGTH];
+            is.readFully(pairs);
+            f.setNameValueBlock(SpdyNameValueBlock.decode(pairs));
+            return f;
+        } catch (IOException ex) {
+            throw new SpdyException(ex);
+        }
+    }
+
+    @Override
+    public byte[] getValidFlags() {
+        return new byte[]{0x01};
     }
 }

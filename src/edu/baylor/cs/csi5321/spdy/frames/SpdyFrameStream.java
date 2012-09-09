@@ -52,4 +52,9 @@ public abstract class SpdyFrameStream extends SpdyControlFrame {
             throw new SpdyException(ex);
         }
     }
+    
+    @Override
+    public void setLength(int length) {
+        super.setLength(length + 4); //for streamId
+    }
 }

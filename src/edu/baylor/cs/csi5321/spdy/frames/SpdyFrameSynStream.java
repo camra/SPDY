@@ -15,8 +15,6 @@ public class SpdyFrameSynStream extends SpdyFrameStream {
     private byte priority;
     private byte slot;
     private SpdyNameValueBlock nameValueBlock;
-    
-    private static final int HEADER_LENGTH = 10;
 
     public int getAssociatedToStreamId() {
         return associatedToStreamId;
@@ -69,18 +67,22 @@ public class SpdyFrameSynStream extends SpdyFrameStream {
 
     @Override
     public byte[] encode() throws SpdyException {
-        byte[] header = super.encode();
-        ByteArrayOutputStream bout = new ByteArrayOutputStream();
-        DataOutputStream out = new DataOutputStream(bout);
         try {
-            out.write(header);
+            ByteArrayOutputStream bout = new ByteArrayOutputStream();
+            DataOutputStream out = new DataOutputStream(bout);
             out.write(getAssociatedToStreamId() & 0x7FFFFFFF);
             //writing Pri|Unused|Slot
             out.writeByte(getPriority() << 5);
             //we don't use CREDENTIAL, therefore, let's just write 0
             out.writeByte(0);
             out.write(nameValueBlock.encode());
-            return bout.toByteArray();
+            byte[] body = bout.toByteArray();
+            //set the correct length
+            setLength(body.length);
+            //since we have length, we can generate header
+            byte[] header = super.encode();
+            //concat header and body
+            return SpdyUtil.concatArrays(header, body);
         } catch (IOException ex) {
             throw new SpdyException(ex);
         }
@@ -101,12 +103,17 @@ public class SpdyFrameSynStream extends SpdyFrameStream {
             setPriority((byte) (priorityAndUnused >> 5));
             byte slot = is.readByte();
             setSlot(slot);
-            byte[] pairs = new byte[length - HEADER_LENGTH];
+            byte[] pairs = new byte[f.getLength() - HEADER_LENGTH];
             is.readFully(pairs);
             f.setNameValueBlock(SpdyNameValueBlock.decode(pairs));
             return f;
         } catch (IOException ex) {
             throw new SpdyException(ex);
         }
+    }
+
+    @Override
+    public byte[] getValidFlags() {
+        return new byte[]{0x01, 0x02};
     }
 }

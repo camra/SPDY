@@ -15,8 +15,8 @@ public class SpdyFrameHeaders extends SpdyFrameSynStream {
         super(associatedToStreamId, priority, slot, nameValueBlock, streamId, version, controlBit, flags, length);
         this.headers = headers;
     }
-    
-    public SpdyFrameHeaders(boolean controlBit, byte flags, int length) throws SpdyException  {
+
+    public SpdyFrameHeaders(boolean controlBit, byte flags, int length) throws SpdyException {
         super(controlBit, flags, length);
     }
 
@@ -35,14 +35,21 @@ public class SpdyFrameHeaders extends SpdyFrameSynStream {
 
     @Override
     public byte[] encode() throws SpdyException {
-        byte[] header = super.encode();
+
         try {
             ByteArrayOutputStream bout = new ByteArrayOutputStream();
-            bout.write(header);
             bout.write(headers.encode());
-            return bout.toByteArray();
+            byte[] body = bout.toByteArray();
+            setLength(body.length);
+            byte[] header = super.encode();
+            return SpdyUtil.concatArrays(header, body);
         } catch (IOException ex) {
             throw new SpdyException(ex);
         }
+    }
+
+    @Override
+    public byte[] getValidFlags() {
+        return new byte[]{0x01};
     }
 }

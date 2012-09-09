@@ -1,8 +1,10 @@
 package edu.baylor.cs.csi5321.spdy.frames;
 
+import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Arrays;
 
 /**
  *
@@ -11,9 +13,9 @@ import java.io.InputStream;
 public abstract class SpdyFrame {
 
     
-    protected boolean controlBit;
-    protected byte flags;
-    protected int length;
+    private boolean controlBit;
+    private byte flags;
+    private int length;
 
     public boolean isControlBit() {
         return controlBit;
@@ -29,7 +31,10 @@ public abstract class SpdyFrame {
         return flags;
     }
 
-    public final void setFlags(byte flags) {
+    public final void setFlags(byte flags) throws SpdyException {
+        if(flags != 0 && !Arrays.asList(getFlags()).contains(flags)) {
+            throw new SpdyException("Invalid flag for this type of frame");
+        }
         this.flags = flags;
     }
 
@@ -37,7 +42,7 @@ public abstract class SpdyFrame {
         return length;
     }
 
-    public final void setLength(int length) {
+    public void setLength(int length) {
         this.length = length;
     }
 
@@ -60,6 +65,10 @@ public abstract class SpdyFrame {
             int length = header2 & SpdyUtil.MASK_LENGTH_HEADER;
             //is it control or data frame?
             long controlBit = header >> 31;
+            //let's read the packet
+            byte[] packet = new byte[length];
+            out.readFully(packet);
+            DataInputStream packetOut = new DataInputStream(new ByteArrayInputStream(packet));
             SpdyFrame result = null;
             if (controlBit == 0) {
                 //it's data message
@@ -100,7 +109,11 @@ public abstract class SpdyFrame {
                 //should not occur
                 throw new SpdyException("Error reading packet header; the control header has unexpeted value");
             }
-            result = result.decode(out);
+            result = result.decode(packetOut);
+            if(packetOut.read() != -1) {
+                throw new SpdyException("End of packet was expected!");
+            }
+            packetOut.close();
             return result;
         } catch (IOException ex) {
             throw new SpdyException(ex);
@@ -109,4 +122,6 @@ public abstract class SpdyFrame {
     }
 
     public abstract SpdyFrame decode(DataInputStream is) throws SpdyException;
+    
+    public abstract byte[] getValidFlags();
 }

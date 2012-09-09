@@ -1,23 +1,29 @@
 package edu.baylor.cs.csi5321.spdy.frames;
 
 import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.Arrays;
 
 /**
  *
  * @author Lukas Camra
  */
 public class SpdyFrameRstStream extends SpdyFrameStream {
-    
+
     private static final int LENGTH = 8;
+    private static final int[] STATUS_CODES = new int[]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
     private int statusCode;
 
     public int getStatusCode() {
         return statusCode;
     }
 
-    public void setStatusCode(int statusCode) {
+    public void setStatusCode(int statusCode) throws SpdyException {
+        if(!Arrays.asList(STATUS_CODES).contains(statusCode)) {
+            throw new SpdyException("Invalid status code: " + statusCode);
+        }
         this.statusCode = statusCode;
     }
 
@@ -25,8 +31,8 @@ public class SpdyFrameRstStream extends SpdyFrameStream {
         super(streamId, controlBit, flags, LENGTH);
         this.statusCode = statusCode;
     }
-    
-    public SpdyFrameRstStream(boolean controlBit, byte flags, int length) throws SpdyException  {
+
+    public SpdyFrameRstStream(boolean controlBit, byte flags, int length) throws SpdyException {
         super(controlBit, flags, length);
     }
 
@@ -48,5 +54,28 @@ public class SpdyFrameRstStream extends SpdyFrameStream {
         } catch (IOException ex) {
             throw new SpdyException(ex);
         }
+    }
+
+    @Override
+    public SpdyFrame decode(DataInputStream is) throws SpdyException {
+        try {
+            SpdyFrameRstStream f = (SpdyFrameRstStream) super.decode(is);
+            int statusCode = is.readInt();
+            f.setStatusCode(statusCode);
+            return f;
+        } catch (IOException ex) {
+            throw new SpdyException(ex);
+        }
+
+    }
+    
+    @Override
+    public int getLength() {
+        return LENGTH;
+    }
+
+    @Override
+    public byte[] getValidFlags() {
+        return new byte[]{};
     }
 }

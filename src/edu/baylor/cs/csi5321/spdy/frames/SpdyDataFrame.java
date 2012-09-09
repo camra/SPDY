@@ -45,15 +45,19 @@ public class SpdyDataFrame extends SpdyFrame {
         if (controlBit) {
             throw new SpdyException("For data frame the control bit must be 0");
         }
-        this.controlBit = controlBit;
+        setControlBit(controlBit);
     }
 
     @Override
     public byte[] encode() throws SpdyException {
         try {
+            setLength(data == null ? 0 : data.length);
             ByteArrayOutputStream bout = new ByteArrayOutputStream();
-            bout.write((getControlBitNumber() << 31 | (getStreamId() & 0x7FFFFFFF)));
-            bout.write(getFlags() << 24 | (getLength() & 0x00FFFFFF));
+            if (isControlBit()) {
+                throw new SpdyException("For data frame the control bit must be 0");
+            }
+            bout.write((getControlBitNumber() << 31 | (getStreamId() & SpdyUtil.MASK_STREAM_ID_HEADER)));
+            bout.write(getFlags() << 24 | (getLength() & SpdyUtil.MASK_LENGTH_HEADER));
             bout.write(data);
             return bout.toByteArray();
         } catch (IOException ex) {
@@ -64,12 +68,17 @@ public class SpdyDataFrame extends SpdyFrame {
     @Override
     public SpdyFrame decode(DataInputStream is) throws SpdyException {
         try {
-            byte[] dat = new byte[length];
+            byte[] dat = new byte[getLength()];
             is.readFully(dat);
             this.data = dat;
             return this;
         } catch (IOException ex) {
             throw new SpdyException(ex);
         }
+    }
+
+    @Override
+    public byte[] getValidFlags() {
+        return new byte[]{0x01};
     }
 }
