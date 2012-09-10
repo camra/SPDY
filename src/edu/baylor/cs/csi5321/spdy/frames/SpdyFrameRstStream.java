@@ -13,7 +13,7 @@ import java.util.Arrays;
 public class SpdyFrameRstStream extends SpdyFrameStream {
 
     private static final int LENGTH = 8;
-    private static final int[] STATUS_CODES = new int[]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
+    public static final int[] STATUS_CODES = new int[]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
     private int statusCode;
 
     public int getStatusCode() {
@@ -21,7 +21,7 @@ public class SpdyFrameRstStream extends SpdyFrameStream {
     }
 
     public void setStatusCode(int statusCode) throws SpdyException {
-        if(!Arrays.asList(STATUS_CODES).contains(statusCode)) {
+        if(!Arrays.asList(getValidStatusCodes()).contains(statusCode)) {
             throw new SpdyException("Invalid status code: " + statusCode);
         }
         this.statusCode = statusCode;
@@ -75,7 +75,38 @@ public class SpdyFrameRstStream extends SpdyFrameStream {
     }
 
     @Override
-    public byte[] getValidFlags() {
-        return new byte[]{};
+    public Byte[] getValidFlags() {
+        return new Byte[]{};
     }
+    
+    public int[] getValidStatusCodes() {
+        return STATUS_CODES;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if(!super.equals(obj)) {
+            return false;
+        }
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        final SpdyFrameRstStream other = (SpdyFrameRstStream) obj;
+        if (this.statusCode != other.statusCode) {
+            return false;
+        }
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        int hash = 7 * super.hashCode();
+        hash = 29 * hash + this.statusCode;
+        return hash;
+    }
+    
+    
 }

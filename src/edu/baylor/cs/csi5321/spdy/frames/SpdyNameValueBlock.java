@@ -4,6 +4,7 @@ import java.io.*;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.zip.DataFormatException;
 import java.util.zip.Deflater;
 import java.util.zip.Inflater;
@@ -32,9 +33,6 @@ public class SpdyNameValueBlock {
     }
 
     public byte[] encode() throws SpdyException {
-        if (pairs.isEmpty()) {
-            return new byte[]{};
-        }
         try {
             ByteArrayOutputStream bout = new ByteArrayOutputStream();
             DataOutputStream out = new DataOutputStream(bout);
@@ -45,17 +43,17 @@ public class SpdyNameValueBlock {
                 byte[] valueByte = value.getBytes(SpdyUtil.ENCODING);
                 out.writeInt(nameByte.length);
                 out.write(nameByte);
-                out.write(valueByte.length);
+                out.writeInt(valueByte.length);
                 out.write(valueByte);
             }
             byte[] contentArr = bout.toByteArray();
             //we need to compress it
-            //let's create compressedContent buffer, that is double size of contentArr
-            byte[] compressedContent = new byte[contentArr.length * 2];
+            //let's create compressedContent buffer, that is extended by 100 for possible overhead
+            byte[] compressedContent = new byte[contentArr.length + 100];
             Deflater compresser = new Deflater();
             //set up dictionary as stated in Spdy specification
-            compresser.setDictionary(SpdyUtil.SPDY_dictionary_txt);
             compresser.setInput(contentArr);
+            compresser.setDictionary(SpdyUtil.SPDY_dictionary_txt);
             compresser.finish();
             int resultLength = compresser.deflate(compressedContent);
             return Arrays.copyOfRange(compressedContent, 0, resultLength);
@@ -70,16 +68,23 @@ public class SpdyNameValueBlock {
             //decompress the content
             SpdyNameValueBlock result = new SpdyNameValueBlock();
             Inflater decompress = new Inflater();
-            decompress.setDictionary(SpdyUtil.SPDY_dictionary_txt);
             decompress.setInput(pairsByte, 0, pairsByte.length);
-            //let's create buffer that is double the size of pairs
-            byte[] buffer = new byte[pairsByte.length * 2];
+
+            //let's create buffer that is ten times of the size of pairs
+            byte[] buffer = new byte[pairsByte.length * 10];
             ByteArrayOutputStream bos = new ByteArrayOutputStream();
             int decompressedLength = 0;
-            while ((decompressedLength = decompress.inflate(buffer)) > 0) {
-                bos.write(buffer, 0, decompressedLength);
+            //first we need to call inflate in order to be able to set the dictionary
+            decompressedLength = decompress.inflate(buffer);
+            if (decompress.needsDictionary()) {
+                decompress.setDictionary(SpdyUtil.SPDY_dictionary_txt);
             }
+            decompressedLength = decompress.inflate(buffer);
+//            while ((decompressedLength = decompress.inflate(buffer)) > 0) {
+//                bos.write(buffer, 0, decompressedLength);
+//            }
             decompress.end();
+            bos.write(buffer, 0, decompressedLength);
             byte[] decompressedContent = bos.toByteArray();
             //let's read the content
             DataInputStream dis = new DataInputStream(new ByteArrayInputStream(decompressedContent));
@@ -89,18 +94,21 @@ public class SpdyNameValueBlock {
                 if (nameLength <= 0) {
                     throw new SpdyException("Header name is a string with 0 length!");
                 }
-                if (nameLength > Math.pow(2, 24)) {
-                    throw new SpdyException("Maximum name length exceeded: " + nameLength);
-                }
+//                if (nameLength > Math.pow(2, 24)) {
+//                    throw new SpdyException("Maximum name length exceeded: " + nameLength);
+//                }
                 byte[] nameArr = new byte[nameLength];
                 dis.readFully(nameArr);
                 int valueLength = dis.readInt();
-                if (valueLength > Math.pow(2, 24)) {
-                    throw new SpdyException("Maximum value length exceeded: " + valueLength);
-                }
+//                if (valueLength > Math.pow(2, 24)) {
+//                    throw new SpdyException("Maximum value length exceeded: " + valueLength);
+//                }
                 byte[] valueArr = new byte[valueLength];
                 dis.readFully(valueArr);
                 String name = new String(nameArr, SpdyUtil.ENCODING);
+                if (!SpdyUtil.isLowerCase(name)) {
+                    throw new SpdyException("Characters in header name must be all lower case!");
+                }
                 String value = new String(valueArr, SpdyUtil.ENCODING);
                 if (result.getPairs().containsKey(name)) {
                     throw new SpdyException("Duplicate header name: " + name);
@@ -112,5 +120,27 @@ public class SpdyNameValueBlock {
         } catch (IOException | DataFormatException ex) {
             throw new SpdyException(ex);
         }
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        final SpdyNameValueBlock other = (SpdyNameValueBlock) obj;
+        if (!Objects.equals(this.pairs, other.pairs)) {
+            return false;
+        }
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        int hash = 7;
+        hash = 83 * hash + Objects.hashCode(this.pairs);
+        return hash;
     }
 }

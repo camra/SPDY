@@ -4,6 +4,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.Objects;
 
 /**
  *
@@ -14,13 +15,17 @@ public class SpdyFrameSynStream extends SpdyFrameStream {
     private int associatedToStreamId;
     private byte priority;
     private byte slot;
+    private static final int HEADER_LENGTH = 10;
     private SpdyNameValueBlock nameValueBlock;
 
     public int getAssociatedToStreamId() {
         return associatedToStreamId;
     }
 
-    public void setAssociatedToStreamId(int associatedToStreamId) {
+    public void setAssociatedToStreamId(int associatedToStreamId) throws SpdyException {
+        if(associatedToStreamId < 0) {
+            throw new SpdyException("StreamId must be 31-bit value in integer, thus it must not be negative value");
+        }
         this.associatedToStreamId = associatedToStreamId;
     }
 
@@ -28,7 +33,10 @@ public class SpdyFrameSynStream extends SpdyFrameStream {
         return priority;
     }
 
-    public void setPriority(byte priority) {
+    public void setPriority(byte priority) throws SpdyException {
+        if(priority < 0) {
+            throw new SpdyException("Priority must be between 0 and 7");
+        }
         this.priority = priority;
     }
 
@@ -36,7 +44,10 @@ public class SpdyFrameSynStream extends SpdyFrameStream {
         return slot;
     }
 
-    public void setSlot(byte slot) {
+    public void setSlot(byte slot) throws SpdyException {
+        if(slot != 0) {
+            throw new SpdyException("Slot must be 0. Credentials are not supported.");
+        }
         this.slot = slot;
     }
 
@@ -51,7 +62,7 @@ public class SpdyFrameSynStream extends SpdyFrameStream {
     public SpdyFrameSynStream(int associatedToStreamId, byte priority, byte slot, SpdyNameValueBlock nameValueBlock, int streamId, short version, boolean controlBit, byte flags, int length) throws SpdyException {
         super(streamId, controlBit, flags, length);
         this.associatedToStreamId = associatedToStreamId;
-        this.priority = priority;
+        setPriority(priority);
         this.slot = slot;
         this.nameValueBlock = nameValueBlock;
     }
@@ -70,7 +81,7 @@ public class SpdyFrameSynStream extends SpdyFrameStream {
         try {
             ByteArrayOutputStream bout = new ByteArrayOutputStream();
             DataOutputStream out = new DataOutputStream(bout);
-            out.write(getAssociatedToStreamId() & 0x7FFFFFFF);
+            out.writeInt(getAssociatedToStreamId() & 0x7FFFFFFF);
             //writing Pri|Unused|Slot
             out.writeByte(getPriority() << 5);
             //we don't use CREDENTIAL, therefore, let's just write 0
@@ -78,7 +89,7 @@ public class SpdyFrameSynStream extends SpdyFrameStream {
             out.write(nameValueBlock.encode());
             byte[] body = bout.toByteArray();
             //set the correct length
-            setLength(body.length);
+            setLength(body.length + 4); //+4 for StreamId
             //since we have length, we can generate header
             byte[] header = super.encode();
             //concat header and body
@@ -100,7 +111,7 @@ public class SpdyFrameSynStream extends SpdyFrameStream {
             int assoc = is.readInt();
             f.setAssociatedToStreamId(assoc & SpdyUtil.MASK_STREAM_ID_HEADER);
             byte priorityAndUnused = is.readByte();
-            setPriority((byte) (priorityAndUnused >> 5));
+            setPriority((byte) ((priorityAndUnused >> 5) & 0x07));
             byte slot = is.readByte();
             setSlot(slot);
             byte[] pairs = new byte[f.getLength() - HEADER_LENGTH];
@@ -113,7 +124,46 @@ public class SpdyFrameSynStream extends SpdyFrameStream {
     }
 
     @Override
-    public byte[] getValidFlags() {
-        return new byte[]{0x01, 0x02};
+    public Byte[] getValidFlags() {
+        return new Byte[]{0x01, 0x02};
     }
+
+    @Override
+    public boolean equals(Object obj) {
+        if(!super.equals(obj)) {
+            return false;
+        }
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        final SpdyFrameSynStream other = (SpdyFrameSynStream) obj;
+        if (this.associatedToStreamId != other.associatedToStreamId) {
+            return false;
+        }
+        if (this.priority != other.priority) {
+            return false;
+        }
+        if (this.slot != other.slot) {
+            return false;
+        }
+        if (!Objects.equals(this.nameValueBlock, other.nameValueBlock)) {
+            return false;
+        }
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        int hash = 7 * super.hashCode();
+        hash = 83 * hash + this.associatedToStreamId;
+        hash = 83 * hash + this.priority;
+        hash = 83 * hash + this.slot;
+        hash = 83 * hash + Objects.hashCode(this.nameValueBlock);
+        return hash;
+    }
+    
+    
 }

@@ -44,6 +44,10 @@ public class SpdyUtil {
         System.arraycopy(arr2, 0, result, arr1.length, arr2.length);
         return result;
     }
+    
+    public static boolean isLowerCase(String s) {
+        return s.toLowerCase().equals(s);
+    }
 
     /**
      * Converts byte to unsigned byte represented by short

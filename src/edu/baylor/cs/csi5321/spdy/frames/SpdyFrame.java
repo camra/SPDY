@@ -5,6 +5,7 @@ import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
+import java.util.List;
 
 /**
  *
@@ -12,8 +13,7 @@ import java.util.Arrays;
  */
 public abstract class SpdyFrame {
 
-    
-    private boolean controlBit;
+    protected boolean controlBit;
     private byte flags;
     private int length;
 
@@ -32,8 +32,9 @@ public abstract class SpdyFrame {
     }
 
     public final void setFlags(byte flags) throws SpdyException {
-        if(flags != 0 && !Arrays.asList(getFlags()).contains(flags)) {
-            throw new SpdyException("Invalid flag for this type of frame");
+        List<Byte> list = Arrays.asList(getValidFlags());
+        if (flags != 0 && !list.contains(flags)) { 
+            throw new SpdyException("Invalid flag for this type of frame: " + flags);
         }
         this.flags = flags;
     }
@@ -42,7 +43,10 @@ public abstract class SpdyFrame {
         return length;
     }
 
-    public void setLength(int length) {
+    public void setLength(int length) throws SpdyException {
+        if (length > Math.pow(2, 24)) {
+            throw new SpdyException("Maximum length of 2^24 exceeded: " + length);
+        }
         this.length = length;
     }
 
@@ -61,10 +65,10 @@ public abstract class SpdyFrame {
             int header = out.readInt();
             //read flags and length
             int header2 = out.readInt();
-            byte flags = (byte) (header2 >> 24);
+            byte flags = (byte) ((header2 >> 24) & 0x00FFFFFF);
             int length = header2 & SpdyUtil.MASK_LENGTH_HEADER;
             //is it control or data frame?
-            long controlBit = header >> 31;
+            byte controlBit = (byte) ((header >> 31) & 0x1);
             //let's read the packet
             byte[] packet = new byte[length];
             out.readFully(packet);
@@ -107,10 +111,10 @@ public abstract class SpdyFrame {
 
             } else {
                 //should not occur
-                throw new SpdyException("Error reading packet header; the control header has unexpeted value");
+                throw new SpdyException("Error reading packet header; the control header has unexpected control bit: " + controlBit);
             }
             result = result.decode(packetOut);
-            if(packetOut.read() != -1) {
+            if (packetOut.read() != -1) {
                 throw new SpdyException("End of packet was expected!");
             }
             packetOut.close();
@@ -122,6 +126,36 @@ public abstract class SpdyFrame {
     }
 
     public abstract SpdyFrame decode(DataInputStream is) throws SpdyException;
-    
-    public abstract byte[] getValidFlags();
+
+    public abstract Byte[] getValidFlags();
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        final SpdyFrame other = (SpdyFrame) obj;
+        if (this.controlBit != other.controlBit) {
+            return false;
+        }
+        if (this.flags != other.flags) {
+            return false;
+        }
+        if (this.length != other.length) {
+            return false;
+        }
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        int hash = 7;
+        hash = 73 * hash + (this.controlBit ? 1 : 0);
+        hash = 73 * hash + this.flags;
+        hash = 73 * hash + this.length;
+        return hash;
+    }
 }

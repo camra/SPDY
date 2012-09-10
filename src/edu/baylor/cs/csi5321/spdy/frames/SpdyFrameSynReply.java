@@ -3,6 +3,7 @@ package edu.baylor.cs.csi5321.spdy.frames;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
+import java.util.Objects;
 
 /**
  *
@@ -41,7 +42,7 @@ public class SpdyFrameSynReply extends SpdyFrameStream {
             ByteArrayOutputStream bout = new ByteArrayOutputStream();
             bout.write(nameValueBlock.encode());
             byte[] body = bout.toByteArray();
-            setLength(body.length); 
+            setLength(body.length + 4);  //+4 for streamId
             byte[] header = super.encode();
             return SpdyUtil.concatArrays(header, body);
             
@@ -64,7 +65,34 @@ public class SpdyFrameSynReply extends SpdyFrameStream {
     }
 
     @Override
-    public byte[] getValidFlags() {
-        return new byte[]{0x01};
+    public Byte[] getValidFlags() {
+        return new Byte[]{0x01};
     }
+
+    @Override
+    public boolean equals(Object obj) {
+        if(!super.equals(obj)) {
+            return false;
+        }
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        final SpdyFrameSynReply other = (SpdyFrameSynReply) obj;
+        if (!Objects.equals(this.nameValueBlock, other.nameValueBlock)) {
+            return false;
+        }
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        int hash = 5;
+        hash = 41 * hash + Objects.hashCode(this.nameValueBlock);
+        return hash;
+    }
+    
+    
 }
