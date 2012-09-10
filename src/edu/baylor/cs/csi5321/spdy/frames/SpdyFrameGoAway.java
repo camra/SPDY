@@ -7,7 +7,7 @@ package edu.baylor.cs.csi5321.spdy.frames;
 public class SpdyFrameGoAway extends SpdyFrameRstStream {
 
     private static final int LENGTH = 8;
-    public static final int[] STATUS_CODES = new int[]{0, 1, 11};
+    public static final Integer[] STATUS_CODES = new Integer[]{0, 1, 11};
 
     public SpdyFrameGoAway(int statusCode, int streamId, boolean controlBit, byte flags) throws SpdyException {
         super(statusCode, streamId, controlBit, flags);
@@ -36,7 +36,7 @@ public class SpdyFrameGoAway extends SpdyFrameRstStream {
     }
     
     @Override
-    public int[] getValidStatusCodes() {
+    public Integer[] getValidStatusCodes() {
         return STATUS_CODES;
     }
     

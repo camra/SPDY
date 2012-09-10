@@ -13,7 +13,7 @@ import java.util.Arrays;
 public class SpdyFrameRstStream extends SpdyFrameStream {
 
     private static final int LENGTH = 8;
-    public static final int[] STATUS_CODES = new int[]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
+    public static final Integer[] STATUS_CODES = new Integer[]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
     private int statusCode;
 
     public int getStatusCode() {
@@ -79,7 +79,7 @@ public class SpdyFrameRstStream extends SpdyFrameStream {
         return new Byte[]{};
     }
     
-    public int[] getValidStatusCodes() {
+    public Integer[] getValidStatusCodes() {
         return STATUS_CODES;
     }
 

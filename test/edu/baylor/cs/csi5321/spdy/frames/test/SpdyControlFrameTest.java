@@ -28,7 +28,7 @@ public class SpdyControlFrameTest {
     private static final String[][] incorrectPairs = new String[][]{{"", "test stest test"}, {"eLo", "this should fail"}};
     private static final int[] goodStatusCodes_rst = new int[]{1, 4, 11};
     private static final int[] badStatusCodes_rst = new int[]{0, 12, 13};
-    private static final int[] goodStatusCode_GoAway = SpdyFrameGoAway.STATUS_CODES;
+    private static final Integer[] goodStatusCode_GoAway = SpdyFrameGoAway.STATUS_CODES;
     private static final int[] badStatusCode_GoAway = new int[]{2, 3, 10};
     private int streamId;
     private int associatedStreamid;
@@ -90,10 +90,10 @@ public class SpdyControlFrameTest {
                             o[6] = (byte) 0;
                             o[7] = (i % 2 == 0) ? blockCorrect : blockCorrect2;
                             o[8] = blockinCorrect;
-                            o[9] = goodStatusCodes_rst[t];
-                            o[10] = badStatusCodes_rst[t];
-                            o[11] = goodStatusCode_GoAway[u];
-                            o[12] = badStatusCode_GoAway[u];
+                            o[9] = goodStatusCode_GoAway[u];
+                            o[10] = badStatusCode_GoAway[u];
+                            o[11] = goodStatusCodes_rst[t];
+                            o[12] = badStatusCodes_rst[t];
                             res.add(o);
                         }
                     }
@@ -113,14 +113,20 @@ public class SpdyControlFrameTest {
 
 
     }
-    
-     @Test
+
+    @Test
     public void testEncodingSynReply() throws Exception {
         SpdyFrameSynReply sfss = new SpdyFrameSynReply(blockCorrect, streamId, CONTROL_BIT_CORRECT, (byte) 0x00, 0x00);
         byte[] arr = sfss.encode();
         SpdyFrameSynReply res = (SpdyFrameSynReply) SpdyFrame.decode(new ByteArrayInputStream(arr));
         assertEquals(sfss, res);
+    }
 
-
+    @Test
+    public void testEncodingRstStream() throws Exception {
+        SpdyFrameRstStream sfss = new SpdyFrameRstStream(statusRstStream, streamId, CONTROL_BIT_CORRECT, (byte) 0x00);
+        byte[] arr = sfss.encode();
+        SpdyFrameRstStream res = (SpdyFrameRstStream) SpdyFrame.decode(new ByteArrayInputStream(arr));
+        assertEquals(sfss, res);
     }
 }
